@@ -3,18 +3,20 @@
     flex-wrap: wrap;
     justify-content: center;
     gap: 1rem;
-    padding: 2rem 1rem;
+    padding: 0.5rem 1rem;
     width: 100%;
 }
 
 .card {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(248, 247, 252, 0.95);
     backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.2);
     border-radius: 8px;
-    padding: 1rem;
-    width: 200px;
+    padding: 0.5rem;
+    width: 250px;
     height: 120px;
+    min-height: 120px;
+    max-height: 120px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -23,10 +25,12 @@
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    flex-shrink: 0;
+    flex-grow: 0;
 }
 
 .card:hover {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(248, 247, 252, 1);
     border-color: rgba(255, 255, 255, 0.3);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
@@ -37,6 +41,81 @@
     color: white;
     font-family: 'Vazirmatn', sans-serif;
     text-align: center;
+}
+
+.card1 .card-title-time {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #1a237e;
+    font-family: 'Vazirmatn', sans-serif;
+    text-align: center;
+    margin-bottom: 0.3rem;
+    direction: ltr;
+}
+
+.card1 .date-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    gap: 0.3rem;
+}
+
+.card1 .div1 {
+    flex: 1;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    padding: 0.2rem;
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.card1 .div2 {
+    flex: 0 0 auto;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+    padding: 0.2rem;
+    background: rgba(255, 255, 255, 0.3);
+    min-width: 70px;
+}
+
+
+
+.card1 .card-solar-date {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #000000;
+    font-family: 'Vazirmatn', sans-serif;
+    text-align: center;
+    margin-bottom: 0.05rem;
+    direction: rtl;
+}
+
+.card1 .card-gregorian-date {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #000000;
+    font-family: 'Vazirmatn', sans-serif;
+    text-align: center;
+    direction: ltr;
+}
+
+.card1 .solar-week {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #000000;
+    font-family: 'Vazirmatn', sans-serif;
+    text-align: center;
+    margin-bottom: 0.05rem;
+    direction: rtl;
+}
+
+.card1 .gregorian-week {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #000000;
+    font-family: 'Vazirmatn', sans-serif;
+    text-align: center;
+    direction: ltr;
 }
 
 @media (max-width: 768px) {
