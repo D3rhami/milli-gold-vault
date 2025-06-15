@@ -462,9 +462,7 @@ async function processGoldData(env) {
     const success = await pushCsvToGithub(filename, csvContent, sha, env);
 
     if (success) {
-        const successMsg = `Data processed and pushed for ${today} - Price: ${goldData.price18}`;
         _log(`Successfully processed and pushed data for ${today}`);
-        await logSuccess(successMsg, env);
         return { success: true, message: `Data processed for ${today}` };
     } else {
         const errorMsg = `Failed to push data to GitHub for ${today}`;
