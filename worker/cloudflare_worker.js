@@ -176,13 +176,67 @@ function getMinuteKey(dateString) {
     return `${year}-${month}-${day} ${hours}:${minutes}`;
 }
 
+async function logSuccess(successMsg, env) {
+    try {
+        const tehranTime = getTehranDateTime();
+        const timestamp = formatTehranTime(tehranTime);
+        const logContent = `[${timestamp}] SUCCESS: ${successMsg}\n`;
+        _log(`Logging success: ${logContent.trim()}`);
+
+        const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATABASE_PATH}/server.log`;
+        const headers = {
+            'Authorization': `token ${env.GITHUB_TOKEN}`,
+            'Accept': 'application/vnd.github.v3+json',
+            'User-Agent': 'Cloudflare-Worker'
+        };
+
+        let newContent = logContent;
+        let sha = null;
+
+        try {
+            const response = await fetch(url, { headers });
+            if (response.ok) {
+                const data = await response.json();
+                const existingContent = atob(data.content);
+                sha = data.sha;
+                newContent = existingContent + logContent;
+            }
+        } catch (e) {
+            _log(`Could not fetch existing log file: ${e}`);
+        }
+
+        const encodedContent = btoa(newContent);
+        const requestData = {
+            message: `Log success: ${successMsg}`,
+            content: encodedContent
+        };
+
+        if (sha) {
+            requestData.sha = sha;
+        }
+
+        await fetch(url, {
+            method: 'PUT',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        });
+
+        _log(`Success logged to server.log`);
+    } catch (e) {
+        _log(`Failed to log success: ${e}`);
+    }
+}
+
 async function logError(errorMsg, env) {
     try {
         const tehranTime = getTehranDateTime();
         const today = formatTehranTime(tehranTime, 'date');
         const timestamp = formatTehranTime(tehranTime);
 
-        const logContent = `[${timestamp}] ${errorMsg}\n`;
+        const logContent = `[${timestamp}] ERROR: ${errorMsg}\n`;
         _log(`Logging error: ${logContent.trim()}`);
 
         const url = `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/contents/${DATABASE_PATH}/server.log`;
@@ -361,32 +415,7 @@ function jaliMsg(price) {
     return `📆 ${solarDay}-${monthName}-${solarYear}|${timeStr}🪙${price} . add by cloudflare worker`;
 }
 
-function checkDuplicateInMinute(csvContent, apiDate, tehranTime) {
-    if (!csvContent) return false;
 
-    const lines = csvContent.trim().split('\n');
-    if (lines.length <= 1) return false;
-
-    const apiMinuteKey = getMinuteKey(apiDate);
-    const tehranMinuteKey = getMinuteKey(tehranTime);
-
-    for (let i = 1; i < lines.length; i++) {
-        const parts = lines[i].split(',');
-        if (parts.length >= 3) {
-            const existingApiDate = parts[1];
-            const existingTehranTime = parts[2];
-
-            const existingApiMinute = getMinuteKey(existingApiDate);
-            const existingTehranMinute = getMinuteKey(existingTehranTime);
-
-            if (existingApiMinute === apiMinuteKey || existingTehranMinute === tehranMinuteKey) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
 
 async function processGoldData(env) {
     _log("Starting gold data processing");
@@ -418,15 +447,6 @@ async function processGoldData(env) {
 
     const { content: existingContent, sha } = await getCsvFromGithub(filename, env);
 
-    if (checkDuplicateInMinute(existingContent, dateFromApi, tehranTimeFormatted)) {
-        _log(`Duplicate entry found for minute, skipping insertion`);
-        return {
-            success: true,
-            message: `Duplicate entry skipped for ${today}`,
-            skipped: true
-        };
-    }
-
     let csvContent;
     if (existingContent === null) {
         _log("Creating new CSV file with headers");
@@ -442,7 +462,9 @@ async function processGoldData(env) {
     const success = await pushCsvToGithub(filename, csvContent, sha, env);
 
     if (success) {
+        const successMsg = `Data processed and pushed for ${today} - Price: ${goldData.price18}`;
         _log(`Successfully processed and pushed data for ${today}`);
+        await logSuccess(successMsg, env);
         return { success: true, message: `Data processed for ${today}` };
     } else {
         const errorMsg = `Failed to push data to GitHub for ${today}`;
@@ -474,6 +496,10 @@ export default {
         try {
             const result = await processGoldData(env);
             console.log('Scheduled execution result:', result);
+            
+            if (!result.success) {
+                await logError(`Scheduled execution failed: ${result.error}`, env);
+            }
         } catch (error) {
             console.error('Scheduled execution error:', error);
             await logError(`Scheduled execution error: ${error.message}`, env);
