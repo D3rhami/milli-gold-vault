@@ -94,3 +94,4 @@ fabric.properties
 
 /.env
 !/worker/.wrangler/
+!/worker/.wrangler/
