@@ -228,20 +228,31 @@ async function logError(errorMsg, env) {
 }
 
 async function getGoldPrice() {
-    const url = 'https://api.codebazan.ir/tgju/v2/current/geram18';
+    const primaryUrl = 'https://milli.gold/api/v1/public/milli-price/external';
+    const fallbackUrl = 'https://milli.gold/api/v1/public/milli-price/detail';
     const headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
     };
 
     try {
-        const response = await fetch(url, { headers });
+        const response = await fetch(primaryUrl, { headers });
         if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            throw new Error(`Primary API failed: HTTP ${response.status}: ${response.statusText}`);
         }
         const data = await response.json();
         return data;
     } catch (e) {
-        return `error was ${e}`;
+        _log(`Primary API failed: ${e}, trying fallback`);
+        try {
+            const response = await fetch(fallbackUrl, { headers });
+            if (!response.ok) {
+                throw new Error(`Fallback API failed: HTTP ${response.status}: ${response.statusText}`);
+            }
+            const data = await response.json();
+            return data;
+        } catch (fallbackError) {
+            return `error was ${fallbackError}`;
+        }
     }
 }
 
@@ -350,25 +361,25 @@ function jaliMsg(price) {
     return `📆 ${solarDay}-${monthName}-${solarYear}|${timeStr}🪙${price} . add by cloudflare worker`;
 }
 
-function checkDuplicateInMinute(csvContent, apiDate, realTime) {
+function checkDuplicateInMinute(csvContent, apiDate, tehranTime) {
     if (!csvContent) return false;
 
     const lines = csvContent.trim().split('\n');
     if (lines.length <= 1) return false;
 
     const apiMinuteKey = getMinuteKey(apiDate);
-    const realMinuteKey = getMinuteKey(realTime);
+    const tehranMinuteKey = getMinuteKey(tehranTime);
 
     for (let i = 1; i < lines.length; i++) {
         const parts = lines[i].split(',');
         if (parts.length >= 3) {
             const existingApiDate = parts[1];
-            const existingRealTime = parts[2];
+            const existingTehranTime = parts[2];
 
             const existingApiMinute = getMinuteKey(existingApiDate);
-            const existingRealMinute = getMinuteKey(existingRealTime);
+            const existingTehranMinute = getMinuteKey(existingTehranTime);
 
-            if (existingApiMinute === apiMinuteKey || existingRealMinute === realMinuteKey) {
+            if (existingApiMinute === apiMinuteKey || existingTehranMinute === tehranMinuteKey) {
                 return true;
             }
         }
@@ -399,7 +410,7 @@ async function processGoldData(env) {
     _log(`Retrieved gold data: ${JSON.stringify(goldData)}`);
 
     const tehranTime = getTehranDateTime();
-    const realTimeFormatted = formatTehranTime(tehranTime);
+    const tehranTimeFormatted = formatTehranTime(tehranTime);
 
     const dateFromApi = goldData.date;
     const today = dateFromApi.split('T')[0];
@@ -407,7 +418,7 @@ async function processGoldData(env) {
 
     const { content: existingContent, sha } = await getCsvFromGithub(filename, env);
 
-    if (checkDuplicateInMinute(existingContent, dateFromApi, realTimeFormatted)) {
+    if (checkDuplicateInMinute(existingContent, dateFromApi, tehranTimeFormatted)) {
         _log(`Duplicate entry found for minute, skipping insertion`);
         return {
             success: true,
@@ -419,12 +430,12 @@ async function processGoldData(env) {
     let csvContent;
     if (existingContent === null) {
         _log("Creating new CSV file with headers");
-        csvContent = "price18,date,real_time\n";
+        csvContent = "price18,date,time\n";
     } else {
         csvContent = existingContent;
     }
 
-    const newRow = `${goldData.price18},${goldData.date},${realTimeFormatted}\n`;
+    const newRow = `${goldData.price18},${goldData.date},${tehranTimeFormatted}\n`;
     csvContent += newRow;
     _log(`Adding new row: ${newRow.trim()}`);
 
