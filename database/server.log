@@ -90,3 +90,4 @@
 [2025-06-17 23:15:21] ERROR: Scheduled execution failed: Failed to push data to GitHub for 2025-06-17
 [2025-06-17 23:16:00] ERROR: Error fetching CSV from GitHub: 503 - {"message": "No server is currently available to service your request. Sorry about that. Please try resubmitting your request and contact us if the problem persists."}
 
+[2025-06-17 23:16:14] ERROR: Failed to push 2025-06-17.csv: 422 - {"message":"Invalid request.\n\n\"sha\" wasn't supplied.","documentation_url":"https://docs.github.com/rest/repos/contents#create-or-update-file-contents","status":"422"}
